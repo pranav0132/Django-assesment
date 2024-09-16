@@ -1,0 +1,139 @@
+Question 1: By default, are Django signals executed synchronously or asynchronously?
+Answer: By default, Django signals are executed synchronously. This means that when a signal is sent, the execution of the signal's handler blocks the code execution of the sender until the signal processing is complete
+########################### CODE ##########################################
+# models.py
+from django.db import models
+from django.db.models.signals import post_save
+from django.dispatch import receiver
+import time
+
+class MyModel(models.Model):
+    name = models.CharField(max_length=100)
+
+# Signal handler function
+@receiver(post_save, sender=MyModel)
+def my_handler(sender, instance, **kwargs):
+    print("Signal handler started")
+    time.sleep(5)  # Simulating a time-consuming process
+    print("Signal handler finished")
+
+# Simulate saving a model instance in a view or shell
+instance = MyModel.objects.create(name="Test")
+print("Model instance created")
+################################# Explanation ###########################################################
+Explanation:
+
+When MyModel.objects.create() is called, the post_save signal is fired.
+The signal handler my_handler sleeps for 5 seconds before completing.
+The print("Model instance created") statement will only execute after the signal handler finishes.
+If Django signals were asynchronous by default, you would expect the print("Model instance created") to appear immediately, but it waits until after the signal is processed.
+
+_____________________________________________________________________________________________________________________________________________________________________________________________________________________
+
+Question 2: Do Django signals run in the same thread as the caller?
+Answer: Yes, by default, Django signals run in the same thread as the caller.
+
+############################################ CODE #########################################################################
+
+# models.py
+from django.db import models
+from django.db.models.signals import post_save
+from django.dispatch import receiver
+import threading
+
+class MyModel(models.Model):
+    name = models.CharField(max_length=100)
+
+# Signal handler function
+@receiver(post_save, sender=MyModel)
+def my_handler(sender, instance, **kwargs):
+    print(f"Signal handler thread: {threading.current_thread().name}")
+
+# Simulate saving a model instance in a view or shell
+print(f"Main thread: {threading.current_thread().name}")
+instance = MyModel.objects.create(name="Test")
+
+################################## Explanation ###################################################
+
+Explanation:
+
+When you run this, both the main execution and the signal handler will print the same thread name, showing that they run in the same thread.
+This demonstrates that Django signals run in the same thread by default.
+
+
+______________________________________________________________________________________________________________________________________________________________________________________________________________________
+
+Question 3: By default, do Django signals run in the same database transaction as the caller?
+Answer: Yes, by default, Django signals run in the same database transaction as the caller. For example, the post_save signal will only be fired after the model instance has been successfully saved to the database.
+
+###################################### CODE #############################################################
+
+# models.py
+from django.db import models
+from django.db.models.signals import post_save
+from django.dispatch import receiver
+from django.db import transaction
+
+class MyModel(models.Model):
+    name = models.CharField(max_length=100)
+
+# Signal handler function
+@receiver(post_save, sender=MyModel)
+def my_handler(sender, instance, **kwargs):
+    print("Signal handler called")
+    # Checking if we're in a transaction
+    if transaction.get_autocommit():
+        print("Not in a transaction")
+    else:
+        print("In a transaction")
+
+# Simulate saving a model instance in a view or shell
+with transaction.atomic():
+    instance = MyModel.objects.create(name="Test")
+    print("Model instance created")
+
+########################################### Explanation #################################################
+
+Explanation:
+
+In the above code, the signal handler checks if the code is inside a database transaction using transaction.get_autocommit().
+Since the signal runs within an atomic() block, it will print "In a transaction," demonstrating that Django signals run in the same database transaction by default.
+
+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+Topic: Custom Classes in Python
+
+Description: You are tasked with creating a Rectangle class with the following requirements:
+
+An instance of the Rectangle class requires length:int and width:int to be initialized.
+We can iterate over an instance of the Rectangle class 
+When an instance of the Rectangle class is iterated over, we first get its length in the format: {'length': <VALUE_OF_LENGTH>} followed by the width {width: <VALUE_OF_WIDTH>}
+
+######################################################## CODE ###########################################################################################################################
+
+
+class Rectangle:
+    def __init__(self, length: int, width: int):
+        self.length = length
+        self.width = width
+    
+    # Custom iterator method
+    def __iter__(self):
+        yield {'length': self.length}  # Yield length as a dictionary
+        yield {'width': self.width}    # Yield width as a dictionary
+
+# Example Usage:
+rect = Rectangle(10, 5)
+
+# Iterating over the Rectangle instance
+for dimension in rect:
+    print(dimension)
+
+######################################## Explanation ################################################
+
+Initialization (__init__): The constructor takes length and width as parameters and initializes the instance.
+Iterator (__iter__): The __iter__() method is defined to make the class iterable.
+It uses the yield keyword to return the length first and then the width as dictionaries in the required format.
+Iteration Example: When you iterate over an instance of the Rectangle class, it will first yield the length as {'length': <VALUE_OF_LENGTH>}, followed by the width as {'width': <VALUE_OF_WIDTH>}.
+
+
